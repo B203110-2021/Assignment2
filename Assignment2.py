@@ -271,3 +271,150 @@ else:
  quit()
 
 
+###########################################################################
+###Step3_scanning protein sequence(s) of interest with motifs from the PROSITE database
+###########################################################################
+
+#ask the user if he want to scan protein sequence of interest with motifs from the PROSITE database
+q12=input("Do you want to scan protein sequence of interest with motifs from the PROSITE database or not?\n\tPlease type yes or no\n\t")
+if q12.upper() == "YES":
+  seperate_fasta=open("interest_sequence.fa").read()
+#convert to list
+  fasta_list=seperate_fasta.split(">")
+#obtain gene ID 
+  ID= []
+  for x in fasta_list :
+    ID_line=x.split(' ')
+    ID.append(ID_line[0])
+
+#add the ">" back    
+  s='>'
+  for a in range(len(fasta_list)):
+      fasta_list[a]=s+fasta_list[a]
+      new_fasta_list=fasta_list
+      
+
+#the list has a superfluous ">" on the first place, delete it
+  true_fasta_list=[]
+  true_fasta_list=new_fasta_list[1:]
+  true_ID=[]
+  true_ID=ID[1:]
+
+#convert list to files (the file is named after the gene ID)
+  for i in range(len(true_ID)):
+        file=open(true_ID[i], 'w')
+        file.write(str(true_fasta_list[i]))
+        file.close()
+
+#Make a directory whcih called patmatmotifs where user want to put their patmatmotifs results
+  os.mkdir("patmatmotifs")
+#Using patmatmotifs to scan motifs from the PROSITE database
+  Motif_name=[]
+  for i in range(len(true_ID)):
+          os.system('patmatmotifs -sequence '+true_ID[i]+' -outfile patmatmotifs/'+true_ID[i]+'_motif_result')
+
+  print("All the patmatmotifs results have been put into the directory which named patmatmotifs")     
+#generate a summary file that includes all the results, import linecache
+#read all files under the path and put them in the list
+  root = 'patmatmotifs/'
+  file_names = os.listdir(root)
+  file_ob_list = []
+  for file_name in file_names:
+        file_ob = root + file_name
+        file_ob_list.append(file_ob)
+
+
+#for each file, read the contents of the file by line and put it into the same list all_motif
+  all_motif = []
+  for file_ob in file_ob_list:
+        line_num = 1
+        length_file = len(open(file_ob, encoding='utf-8').readlines())
+        while line_num <= length_file:
+            line = linecache.getline(file_ob, line_num)
+            line = line.strip()
+            all_motif.append(line)
+            line_num = line_num + 1
+
+#write the data content to the generated txt file, pay attention to the coding problem
+  f = open('./combine_motif_result.txt', 'w+', encoding='utf-8')
+  for i, p in enumerate(all_motif):
+        f.write(p+'\n')
+
+  f.close()
+  print("All the patmatmotifs results have been put into the txt which named combine_motif_result.txt in your directory") 
+
+#ask the user if he want to see all motifs names
+q13=input("Do you want to see the result and the names of all motifs or not?\n\tPlease type yes or no\n\t")
+if q13.upper() == "YES":
+  os.system('cat combine_motif_result.txt')
+  Motif_name=[]
+  for line in open("combine_motif_result.txt"):
+   if 'Motif =' in line:
+     Motif_name_line= line.split('Motif = ')[1].split('\n')[0]
+     Motif_name.append(Motif_name_line)
+print(Motif_name)
+print("These are results and the names of all motifs.")
+
+
+########################################################
+#Step4:other appropriate EMBOSS (or other) analysis
+########################################################
+#module1_sequence display(infoseq)
+#ask the user if he want to see the basic information of his inrerest sequence
+q14=input("Do you want to see the basic information of your interest sequence?\n\tPlease type yes or no\n\t")
+if q14.upper() == "YES":
+  os.system('infoseq interest_sequence.fa -outfile interest_sequence.INFO')
+  info = open("interest_sequence.INFO").read()
+  print(info)
+
+#module2_protein sequence analysis_sequence component statistics(pepstats and compseq)
+#ask the user whether he want to do EMBOSS analysis comseq
+q15=input("Do you want to do other EMBOSS analysis comseq?\n\tPlease type yes or no\n\t")
+if q15.upper() == "YES":
+#Make a directory whcih called compseq where user can put their compseq results
+ os.mkdir("compseq")
+#using compseq to count the occurrence frequency of different strings in sequences according to the specified length
+ for x in range(len(ID)):
+   os.system('compseq -sequence '+ID[x]+' -out compseq/'+ID[x]+'_compseq_result -word 4')
+ print("All the compseq results have been put into the directory which named compseq")
+
+#module2_pepstats
+#ask the user whether he want to do EMBOSS analysis pepstats
+q16=input("Do you want to do other EMBOSS analysis pepstats?\n\tPlease type yes or no\n\t")
+if q16.upper() == "YES":
+ os.system('pepstats -sequence interest_sequence.fa -outfile pepstats_result.fa')
+ pep=open("pepstats_result.fa").read()
+ print(pep)
+
+#module3_secondary structure analysis(garnier and helixturnhelix)
+#ask the user whether he want to do EMBOSS analysis garnier
+q17=input("Do you want to do other EMBOSS analysis garnier?\n\tPlease type yes or no\n\t")
+if q17.upper() == "YES":
+ os.system('garnier interest_sequence.fa garnier_result.GARNIER')
+ gar=open("garnier_result.GARNIER").read()
+ print(gar)
+
+#module3_helixturnhelix
+#ask the user whether he want to do EMBOSS analysis like helixturnhelix
+q18=input("Do you want to do other EMBOSS analysis helixturnhelix?\n\tPlease type yes or no\n\t")
+if q18.upper() == "YES":
+ os.system('helixturnhelix -sequence interest_sequence.fa -outfile helixturnhelix_result.fa')
+ helix=open("helixturnhelix_result.fa").read()
+ print(helix)
+
+#module4_performing BLASTX
+#ask the user whether he want to do BLASTX
+q19=input("Do you want to do BLASTX?\n\tPlease type yes or no\n\t")
+if q19.upper() == "YES":
+ query_fasta=input("Enter query_fasta:\n")
+ file=open('query_fasta.fasta','w')
+ file.write(query_fasta)
+ os.system('blastx -db protein_database -query query_fasta.fasta -outfmt 7 > blastx_result.out')
+ bx=open("blastx_result.out").read()
+ print(bx)
+
+#The end
+print("All analysis result have been put into your directory, I hope this programme is useful. Good bye~")
+
+
+
